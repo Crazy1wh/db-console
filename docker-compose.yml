@@ -7,7 +7,11 @@ services:
       - "${DB_CONSOLE_PORT:-6080}:8090"
     environment:
       DB_ROOT: /data
+      DB_HOST_ROOT: ${DB_HOST_ROOT:-}
+      DB_EXTERNAL_ROOT: /external
       CORS_ORIGINS: http://localhost:6080
       PORT: 8090
+    user: ${DB_CONSOLE_USER:-10001:10001}
     volumes:
       - ./data:/data
+      - ${DB_HOST_ROOT:-.}:/external

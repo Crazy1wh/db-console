@@ -8,7 +8,7 @@ from backend.responses import ok
 from backend.services import TableService
 
 
-router = APIRouter(prefix="/api/databases/{database}/tables", tags=["tables"])
+router = APIRouter(prefix="/api/databases/{database:path}/tables", tags=["tables"])
 
 
 class ColumnCreate(BaseModel):

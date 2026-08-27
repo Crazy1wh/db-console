@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import sqlite3
+import os
 from pathlib import Path
 from typing import Any, Sequence
 
@@ -15,10 +16,52 @@ class SQLiteAdapter(DatabaseAdapter):
     def __init__(self, root: str | Path):
         self.root = Path(root).expanduser().resolve()
         self.root.mkdir(parents=True, exist_ok=True)
+        self.external_root = Path(os.getenv("DB_EXTERNAL_ROOT", "/external")).resolve()
+        self.host_root = Path(os.getenv("DB_HOST_ROOT", "")).expanduser().resolve() if os.getenv("DB_HOST_ROOT") else None
+        self.registered: dict[str, Path] = {}
+
+    def register_database(self, requested: str) -> str:
+        raw = Path(requested).expanduser()
+        if not raw.is_absolute():
+            candidate = (self.root / raw).resolve()
+            name = candidate.relative_to(self.root).as_posix()
+        elif self.host_root and raw.resolve().is_relative_to(self.host_root):
+            candidate = (self.external_root / raw.resolve().relative_to(self.host_root)).resolve()
+            name = candidate.relative_to(self.external_root).as_posix()
+            name = f"external:{name}"
+        else:
+            candidate = raw.resolve()
+            if candidate.is_relative_to(self.root):
+                name = candidate.relative_to(self.root).as_posix()
+            elif candidate.is_relative_to(self.external_root):
+                name = f"external:{candidate.relative_to(self.external_root).as_posix()}"
+            else:
+                raise AppError(400, "PATH_NOT_ALLOWED", "路径不在 DB_ROOT 或配置的外部根目录内")
+        if candidate.suffix.lower() not in ALLOWED_EXTENSIONS:
+            raise AppError(400, "INVALID_DATABASE", "只支持 .db、.sqlite、.sqlite3")
+        if not candidate.is_file():
+            raise AppError(404, "DATABASE_NOT_FOUND", f"文件不存在或容器不可见: {requested}")
+        self.registered[name] = candidate
+        return name
 
     def resolve_database(self, database: str, *, must_exist: bool = True) -> Path:
         if not database or "\x00" in database:
             raise AppError(400, "INVALID_DATABASE", "Invalid database path")
+        if database in self.registered:
+            candidate = self.registered[database]
+            if must_exist and not candidate.is_file():
+                raise AppError(404, "DATABASE_NOT_FOUND", f"Database '{database}' was not found")
+            return candidate
+        if database.startswith("external:"):
+            relative = Path(database.removeprefix("external:"))
+            candidate = (self.external_root / relative).resolve()
+            try:
+                candidate.relative_to(self.external_root)
+            except ValueError as exc:
+                raise AppError(400, "PATH_TRAVERSAL", "外部数据库路径越界") from exc
+            if must_exist and not candidate.is_file():
+                raise AppError(404, "DATABASE_NOT_FOUND", f"Database '{database}' was not found")
+            return candidate
         relative = Path(database)
         if relative.is_absolute() or relative.suffix.lower() not in ALLOWED_EXTENSIONS:
             raise AppError(400, "INVALID_DATABASE", "Database must be under DB_ROOT with a supported extension")

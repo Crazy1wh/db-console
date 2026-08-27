@@ -16,13 +16,15 @@
 
 ## Docker 启动
 
-将 SQLite 文件放在 `./data` 中，然后运行：
+确认 Compose 中配置的 SQLite 目录存在，然后运行：
 
 ```bash
 docker compose up --build
 ```
 
-打开 <http://localhost:6080>。首次登录默认账号为 `admin`，默认密码为 `admin123`。容器以非 root 用户运行，`./data` 挂载为数据库根目录；请确保宿主机目录允许容器 UID `10001` 按所需方式读写。
+打开 <http://localhost:6080>。首次登录默认账号为 `admin`，默认密码为 `admin123`。
+
+网页左侧“添加数据库”支持两种路径：宿主机路径（例如 `/root/dev/car/data/car.db`）和容器路径（例如 `/external/car/data/car.db`）。宿主机路径会根据 `DB_HOST_ROOT` 自动映射到容器内的 `/external`，数据库文件不会复制到 Docker 镜像。
 
 宿主机端口默认是 6080，可通过 `DB_CONSOLE_PORT` 修改。局域网访问地址为 `http://<主机局域网IP>:6080`。
 
@@ -31,6 +33,9 @@ docker compose up --build
 | 名称 | 默认值 | 说明 |
 | --- | --- | --- |
 | `DB_ROOT` | `/data`（容器） | 可访问 SQLite 文件的唯一根目录 |
+| `DB_HOST_ROOT` | 空 | 宿主机外部数据库根目录，例如 `/root/dev` |
+| `DB_EXTERNAL_ROOT` | `/external` | 容器内外部数据库映射根目录 |
+| `DB_CONSOLE_USER` | `10001:10001` | 容器运行 UID:GID；宿主 SQLite 目录不可写时可改为 `0:0` |
 | `CORS_ORIGINS` | `http://localhost:5173`（源码运行） | 逗号分隔的允许来源 |
 | `PORT` | `8090`（容器） | Uvicorn 监听端口 |
 | `AUTH_USERNAME` | `admin` | 登录用户名 |
@@ -76,6 +81,7 @@ cd .. && DB_ROOT="$PWD/data" .venv/bin/uvicorn backend.main:app --port 8090
 | GET | `/api/databases/{db}/tables/{table}/rows` | 分页、搜索、排序和筛选 |
 | POST / PUT / DELETE | `/api/databases/{db}/tables/{table}/rows` | 行增删改 |
 | POST | `/api/query` | 执行参数化 SQL |
+| POST | `/api/databases/register` | 注册一个已挂载的 SQLite 文件路径 |
 
 筛选通过 URL 编码后的 JSON 数组传递，例如：
 

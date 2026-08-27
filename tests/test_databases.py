@@ -39,3 +39,28 @@ def test_database_path_traversal_and_extension_are_rejected(client, db_root: Pat
     assert response.status_code == 400
     assert response.json()["success"] is False
 
+
+def test_register_accepts_host_path_and_maps_to_external_root(monkeypatch, tmp_path):
+    import sqlite3
+    from fastapi.testclient import TestClient
+
+    host_root = tmp_path / "host"
+    external_root = tmp_path / "external"
+    host_root.mkdir()
+    external_root.mkdir()
+    db_path = external_root / "project.sqlite3"
+    with sqlite3.connect(db_path) as connection:
+        connection.execute("CREATE TABLE items (id INTEGER PRIMARY KEY, value TEXT)")
+        connection.execute("INSERT INTO items(value) VALUES ('ok')")
+
+    monkeypatch.setenv("DB_ROOT", str(tmp_path / "empty"))
+    monkeypatch.setenv("DB_HOST_ROOT", str(host_root))
+    monkeypatch.setenv("DB_EXTERNAL_ROOT", str(external_root))
+    from backend.main import create_app
+
+    with TestClient(create_app()) as test_client:
+        test_client.post("/api/auth/login", json={"username": "admin", "password": "admin123"})
+        registered = assert_success(test_client.post("/api/databases/register", json={"path": str(host_root / "project.sqlite3")}))
+        assert registered["name"] == "external:project.sqlite3"
+        rows = assert_success(test_client.get("/api/databases/external%3Aproject.sqlite3/tables/items/rows"))
+        assert rows["rows"][0]["value"] == "ok"

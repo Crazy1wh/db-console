@@ -21,7 +21,15 @@ class DatabaseService:
                         "modified_at": path.stat().st_mtime,
                     }
                 )
+        for name, path in self.adapter.registered.items():
+            if path.is_file():
+                databases.append({"name": name, "size_bytes": path.stat().st_size, "modified_at": path.stat().st_mtime})
         return sorted(databases, key=lambda item: item["name"].lower())
+
+    def register(self, requested: str) -> dict:
+        name = self.adapter.register_database(requested)
+        path = self.adapter.resolve_database(name)
+        return {"name": name, "size_bytes": path.stat().st_size, "requested_path": requested}
 
     def create(self, name: str) -> dict:
         path = self.adapter.resolve_database(name, must_exist=False)

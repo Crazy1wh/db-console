@@ -97,8 +97,8 @@ async function deleteRows(selected: Record<string, unknown>[]) {
 }
 async function createDatabase() {
   try {
-    const { value } = await ElMessageBox.prompt('文件名必须以 .db、.sqlite 或 .sqlite3 结尾', '新建数据库', { inputValue: 'database.sqlite3', inputPattern: /\.(db|sqlite|sqlite3)$/i, inputErrorMessage: '扩展名不受支持' })
-    await api('/databases', { method: 'POST', body: JSON.stringify({ name: value }) }); await loadDatabases(); await selectDatabase(value)
+    const { value } = await ElMessageBox.prompt('输入宿主机路径或容器内路径，例如 /root/dev/car/data/car.db', '添加数据库', { inputPlaceholder: '/root/dev/project/data/app.db', inputPattern: /\.(db|sqlite|sqlite3)$/i, inputErrorMessage: '路径必须指向 .db、.sqlite 或 .sqlite3 文件' })
+    const added = await api<{ name: string }>('/databases/register', { method: 'POST', body: JSON.stringify({ path: value }) }); await loadDatabases(); await selectDatabase(added.name)
   } catch (error) { if (error !== 'cancel' && error !== 'close') showError(error) }
 }
 async function deleteDatabase() {

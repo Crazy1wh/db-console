@@ -13,6 +13,10 @@ class DatabaseCreate(BaseModel):
     name: str = Field(min_length=1, max_length=255)
 
 
+class DatabaseRegister(BaseModel):
+    path: str = Field(min_length=1, max_length=4096)
+
+
 @router.get("")
 def list_databases(service: DatabaseService = Depends(database_service)):
     return ok(service.list())
@@ -21,6 +25,11 @@ def list_databases(service: DatabaseService = Depends(database_service)):
 @router.post("")
 def create_database(body: DatabaseCreate, service: DatabaseService = Depends(database_service)):
     return ok(service.create(body.name))
+
+
+@router.post("/register")
+def register_database(body: DatabaseRegister, service: DatabaseService = Depends(database_service)):
+    return ok(service.register(body.path))
 
 
 @router.delete("/{database}")

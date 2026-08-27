@@ -23,7 +23,7 @@ const filtered = computed(() => {
     <div class="sidebar-title">
       <span>DATABASES</span>
       <div>
-        <el-button text :icon="Plus" title="新建数据库" @click="emit('createDatabase')" />
+        <el-button text :icon="Plus" title="添加数据库路径" @click="emit('createDatabase')" />
         <el-button text :icon="Refresh" title="刷新" @click="emit('refresh')" />
       </div>
     </div>
