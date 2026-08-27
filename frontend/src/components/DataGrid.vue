@@ -32,7 +32,6 @@ function columnMinWidth(column: string) {
   if (info?.type === 'INTEGER' || info?.type === 'REAL') return 78
   return 96
 }
-const tableMinWidth = computed(() => `${displayColumns.value.reduce((total, column) => total + columnMinWidth(column), 42)}px`)
 </script>
 
 <template>
@@ -57,7 +56,7 @@ const tableMinWidth = computed(() => `${displayColumns.value.reduce((total, colu
     </div>
     <div class="grid-wrap">
       <vxe-table
-        ref="grid" :loading="loading" :data="result.rows" height="100%" border stripe show-overflow="title" :style="{ width: tableMinWidth }"
+        ref="grid" :loading="loading" :data="result.rows" height="100%" border stripe show-overflow="title"
         :row-config="{ isHover: true }" :column-config="{ resizable: true, minWidth: 72 }"
         :sort-config="{ remote: true }" :checkbox-config="{ highlight: true }" :cell-class-name="cellClass"
         @sort-change="onSort" @cell-dblclick="({ row }: any) => emit('edit', row)"
