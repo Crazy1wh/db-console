@@ -19,6 +19,19 @@ class SQLiteAdapter(DatabaseAdapter):
         self.external_root = Path(os.getenv("DB_EXTERNAL_ROOT", "/external")).resolve()
         self.host_root = Path(os.getenv("DB_HOST_ROOT", "")).expanduser().resolve() if os.getenv("DB_HOST_ROOT") else None
         self.registered: dict[str, Path] = {}
+        self.catalog_path = Path(os.getenv("DB_CATALOG", str(self.root / ".db-console-catalog.sqlite3"))).expanduser().resolve()
+        self.catalog_path.parent.mkdir(parents=True, exist_ok=True)
+        with sqlite3.connect(self.catalog_path) as catalog:
+            catalog.execute("CREATE TABLE IF NOT EXISTS registrations (name TEXT PRIMARY KEY, path TEXT NOT NULL)")
+        self._load_registered()
+
+    def _load_registered(self) -> None:
+        with sqlite3.connect(self.catalog_path) as catalog:
+            rows = catalog.execute("SELECT name, path FROM registrations").fetchall()
+        for name, path in rows:
+            candidate = Path(path).resolve()
+            if candidate.is_file() and candidate.suffix.lower() in ALLOWED_EXTENSIONS:
+                self.registered[name] = candidate
 
     def register_database(self, requested: str) -> str:
         raw = Path(requested).expanduser()
@@ -42,6 +55,8 @@ class SQLiteAdapter(DatabaseAdapter):
         if not candidate.is_file():
             raise AppError(404, "DATABASE_NOT_FOUND", f"文件不存在或容器不可见: {requested}")
         self.registered[name] = candidate
+        with sqlite3.connect(self.catalog_path) as catalog:
+            catalog.execute("INSERT OR REPLACE INTO registrations(name, path) VALUES (?, ?)", (name, str(candidate)))
         return name
 
     def resolve_database(self, database: str, *, must_exist: bool = True) -> Path:

@@ -64,3 +64,8 @@ def test_register_accepts_host_path_and_maps_to_external_root(monkeypatch, tmp_p
         assert registered["name"] == "external:project.sqlite3"
         rows = assert_success(test_client.get("/api/databases/external%3Aproject.sqlite3/tables/items/rows"))
         assert rows["rows"][0]["value"] == "ok"
+
+    with TestClient(create_app()) as restarted_client:
+        restarted_client.post("/api/auth/login", json={"username": "admin", "password": "admin123"})
+        names = [item["name"] for item in assert_success(restarted_client.get("/api/databases"))]
+        assert "external:project.sqlite3" in names

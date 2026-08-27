@@ -13,7 +13,7 @@ class DatabaseService:
     def list(self) -> list[dict]:
         databases = []
         for path in self.adapter.root.rglob("*"):
-            if path.is_file() and path.suffix.lower() in ALLOWED_EXTENSIONS:
+            if path.is_file() and path.name != self.adapter.catalog_path.name and path.suffix.lower() in ALLOWED_EXTENSIONS:
                 databases.append(
                     {
                         "name": path.relative_to(self.adapter.root).as_posix(),

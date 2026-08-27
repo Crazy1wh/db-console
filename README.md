@@ -26,6 +26,8 @@ docker compose up --build
 
 网页左侧“添加数据库”支持两种路径：宿主机路径（例如 `/root/dev/car/data/car.db`）和容器路径（例如 `/external/car/data/car.db`）。宿主机路径会根据 `DB_HOST_ROOT` 自动映射到容器内的 `/external`，数据库文件不会复制到 Docker 镜像。
 
+手动添加的数据库注册信息保存于 `DB_CATALOG` 指定的隐藏 SQLite 配置库，默认是 `/data/.db-console-catalog.sqlite3`，因此容器重启后仍会保留。该配置库不会出现在数据库列表中。
+
 宿主机端口默认是 6080，可通过 `DB_CONSOLE_PORT` 修改。局域网访问地址为 `http://<主机局域网IP>:6080`。
 
 环境变量：
