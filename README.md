@@ -24,6 +24,8 @@ docker compose up --build
 
 打开 <http://localhost:8090>。容器以非 root 用户运行，`./data` 挂载为数据库根目录；请确保宿主机目录允许容器 UID `10001` 按所需方式读写。
 
+如果宿主机 8090 已被占用，可使用其它宿主机端口，例如：`DB_CONSOLE_PORT=18090 docker compose up -d --build`，然后访问 `http://<主机局域网IP>:18090`。
+
 环境变量：
 
 | 名称 | 默认值 | 说明 |

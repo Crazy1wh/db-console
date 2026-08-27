@@ -4,7 +4,7 @@ services:
     container_name: db-console
     restart: unless-stopped
     ports:
-      - "8090:8090"
+      - "${DB_CONSOLE_PORT:-8090}:8090"
     environment:
       DB_ROOT: /data
       CORS_ORIGINS: http://localhost:8090
