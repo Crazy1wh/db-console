@@ -47,7 +47,7 @@ function cellClass({ row, column }: any) { return row[column.field] === null ? '
       <el-button size="small" :icon="Download" @click="emit('export')">CSV</el-button>
     </div>
     <div class="grid-wrap">
-      <vxe-grid
+      <vxe-table
         ref="grid" :loading="loading" :data="result.rows" height="100%" border stripe show-overflow="title"
         :row-config="{ isHover: true }" :column-config="{ resizable: true, minWidth: 100 }"
         :sort-config="{ remote: true }" :checkbox-config="{ highlight: true }" :cell-class-name="cellClass"
@@ -56,7 +56,7 @@ function cellClass({ row, column }: any) { return row[column.field] === null ? '
         <vxe-column type="checkbox" width="42" fixed="left" />
         <vxe-column v-if="result.identity_type === 'rowid'" field="__rowid__" title="rowid" width="82" sortable :formatter="formatCell" />
         <vxe-column v-for="column in displayColumns" :key="column" :field="column" :title="column" min-width="130" sortable :formatter="formatCell" />
-      </vxe-grid>
+      </vxe-table>
     </div>
     <div class="pager-bar">
       <span>{{ result.total.toLocaleString() }} rows</span>
