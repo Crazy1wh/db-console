@@ -22,9 +22,9 @@
 docker compose up --build
 ```
 
-打开 <http://localhost:8090>。容器以非 root 用户运行，`./data` 挂载为数据库根目录；请确保宿主机目录允许容器 UID `10001` 按所需方式读写。
+打开 <http://localhost:6080>。首次登录默认账号为 `admin`，默认密码为 `admin123`。容器以非 root 用户运行，`./data` 挂载为数据库根目录；请确保宿主机目录允许容器 UID `10001` 按所需方式读写。
 
-如果宿主机 8090 已被占用，可使用其它宿主机端口，例如：`DB_CONSOLE_PORT=18090 docker compose up -d --build`，然后访问 `http://<主机局域网IP>:18090`。
+宿主机端口默认是 6080，可通过 `DB_CONSOLE_PORT` 修改。局域网访问地址为 `http://<主机局域网IP>:6080`。
 
 环境变量：
 
@@ -33,6 +33,9 @@ docker compose up --build
 | `DB_ROOT` | `/data`（容器） | 可访问 SQLite 文件的唯一根目录 |
 | `CORS_ORIGINS` | `http://localhost:5173`（源码运行） | 逗号分隔的允许来源 |
 | `PORT` | `8090`（容器） | Uvicorn 监听端口 |
+| `AUTH_USERNAME` | `admin` | 登录用户名 |
+| `AUTH_PASSWORD` | `admin123` | 登录密码，生产环境必须修改 |
+| `SESSION_SECRET` | 内置默认值 | Cookie 签名密钥，生产环境必须修改 |
 
 ## 本地开发
 
@@ -101,4 +104,8 @@ curl http://localhost:8090/api/health
 
 ## 安全边界
 
-本工具面向受信任的单用户或内网环境，不包含身份认证。不要直接暴露到公网。SQL 控制台按设计允许修改数据库；二次确认只是防误操作，不是权限控制。所有数据库文件访问都受 `DB_ROOT` 限制，但运行进程仍应使用最小文件系统权限并做好数据备份。
+本工具面向受信任的单用户或内网环境。已提供基于环境变量的简单登录保护，但不是完整的多用户权限系统，不要直接暴露到公网。SQL 控制台按设计允许修改数据库；二次确认只是防误操作，不是权限控制。所有数据库文件访问都受 `DB_ROOT` 限制，但运行进程仍应使用最小文件系统权限并做好数据备份。
+
+## 开源许可
+
+本项目以 MIT License 发布，详见 [LICENSE](LICENSE)。欢迎提交 Issue 和 Pull Request。

@@ -38,5 +38,7 @@ def client(db_root):
     from backend.main import create_app
 
     with TestClient(create_app()) as test_client:
+        login = test_client.post("/api/auth/login", json={"username": "admin", "password": "admin123"})
+        assert login.status_code == 200, login.text
         yield test_client
 

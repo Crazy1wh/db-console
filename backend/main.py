@@ -7,11 +7,12 @@ from pathlib import Path
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 
 from backend.adapters import SQLiteAdapter
-from backend.api import databases_router, query_router, tables_router
+from backend.api import auth_router, databases_router, query_router, tables_router
+from backend.api.auth import COOKIE_NAME, verify_token
 from backend.errors import AppError
 from backend.responses import fail, ok
 from backend.services import DatabaseService, QueryService, TableService
@@ -28,6 +29,16 @@ def create_app() -> FastAPI:
     app.state.database_service = DatabaseService(adapter)
     app.state.table_service = TableService(adapter)
     app.state.query_service = QueryService(adapter)
+
+    @app.middleware("http")
+    async def require_login(request: Request, call_next):
+        path = request.url.path
+        public = path in {"/login", "/api/health", "/api/auth/login"} or path.startswith("/assets/")
+        if not public and not verify_token(request.cookies.get(COOKIE_NAME)):
+            if path.startswith("/api/"):
+                return JSONResponse(status_code=401, content=fail("AUTH_REQUIRED", "请先登录"))
+            return RedirectResponse("/login", status_code=307)
+        return await call_next(request)
 
     origins = [item.strip() for item in os.getenv("CORS_ORIGINS", "http://localhost:5173").split(",") if item.strip()]
     app.add_middleware(
@@ -50,6 +61,7 @@ def create_app() -> FastAPI:
     async def sqlite_error_handler(_request: Request, exc: sqlite3.Error):
         return JSONResponse(status_code=400, content=fail("SQLITE_ERROR", str(exc)))
 
+    app.include_router(auth_router)
     app.include_router(databases_router)
     app.include_router(tables_router)
     app.include_router(query_router)
@@ -57,6 +69,10 @@ def create_app() -> FastAPI:
     @app.get("/api/health")
     def health():
         return ok({"status": "ok"})
+
+    @app.get("/login", response_class=HTMLResponse, include_in_schema=False)
+    def login_page():
+        return HTMLResponse("""<!doctype html><html lang='zh-CN'><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><title>登录 db-console</title><style>body{margin:0;background:#f5f7fa;color:#1f2937;font:14px system-ui,sans-serif;display:grid;place-items:center;height:100vh}.box{width:320px;background:#fff;border:1px solid #dfe3e8;padding:28px;box-shadow:0 8px 30px #1f29371a}h1{font-size:20px;margin:0 0 22px}input,button{box-sizing:border-box;width:100%;height:38px;margin:7px 0;padding:0 10px;border:1px solid #cbd5e1}button{background:#2563eb;color:#fff;border:0;cursor:pointer}.error{height:20px;color:#dc2626}</style><div class='box'><h1>登录 db-console</h1><form id='form'><input id='username' placeholder='用户名' autocomplete='username' required><input id='password' type='password' placeholder='密码' autocomplete='current-password' required><div class='error' id='error'></div><button>登录</button></form></div><script>form.onsubmit=async(e)=>{e.preventDefault();error.textContent='';const r=await fetch('/api/auth/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:username.value,password:password.value})});const j=await r.json();if(r.ok&&j.success)location='/';else error.textContent=j.error?.message||'登录失败'}</script></html>""")
 
     dist = PROJECT_ROOT / "frontend" / "dist"
     assets = dist / "assets"
